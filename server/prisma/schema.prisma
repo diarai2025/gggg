@@ -1,0 +1,220 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        Int      @id @default(autoincrement())
+  email     String   @unique
+  name      String
+  password  String
+  plan      Plan     @default(Free)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("users")
+}
+
+model Lead {
+  id        Int        @id @default(autoincrement())
+  userId    Int
+  name      String
+  phone     String
+  email     String
+  source    String     @default("Другое")
+  status    LeadStatus @default(new)
+  notes     String?
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+
+  @@map("leads")
+}
+
+model Deal {
+  id                Int       @id @default(autoincrement())
+  userId            Int
+  name              String
+  clientId          Int?
+  clientName        String
+  amount            Decimal   @db.Decimal(10, 2)
+  currency          String    @default("₸")
+  stage             DealStage @default(lead)
+  probability       Int       @default(0)
+  expectedCloseDate DateTime?
+  notes             String?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  @@map("deals")
+}
+
+model Task {
+  id          Int          @id @default(autoincrement())
+  userId      Int
+  title       String
+  description String?
+  status      TaskStatus   @default(todo)
+  priority    TaskPriority @default(medium)
+  dueDate     DateTime?
+  clientId    Int?
+  dealId      Int?
+  assignedTo  String?
+  tags        String[]     @default([])
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  @@map("tasks")
+}
+
+model Message {
+  id        Int           @id @default(autoincrement())
+  clientId  Int
+  sender    MessageSender
+  text      String
+  isAI      Boolean       @default(false)
+  createdAt DateTime      @default(now())
+
+  @@map("messages")
+}
+
+model Campaign {
+  id          Int      @id @default(autoincrement())
+  userId      Int
+  name        String
+  platform    String
+  status      String   @default("Активна")
+  budget      Decimal  @db.Decimal(10, 2)
+  spent       Decimal  @default(0) @db.Decimal(10, 2)
+  conversions Int      @default(0)
+  imageUrl    String?
+  audience    Json?    // Сохраняем данные аудитории (interests, ageRange, adText, recommendations и т.д.)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("campaigns")
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model clients {
+  id         Int      @id @default(autoincrement())
+  userid_old Int
+  name       String
+  phone      String
+  email      String
+  stage      String   @default("Первый контакт")
+  status     String   @default("Новый")
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime
+  userId     String   @db.Uuid
+
+  @@index([userid_old], map: "clients_userId_idx")
+  @@index([userId], map: "idx_clients_userid_uuid")
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model integrations {
+  id        Int               @id @default(autoincrement())
+  userId    Int
+  type      String
+  status    IntegrationStatus @default(disconnected)
+  config    Json              @default("{}")
+  createdAt DateTime          @default(now())
+  updatedAt DateTime
+
+  @@unique([userId, type])
+  @@index([userId], map: "idx_integrations_userid")
+  @@index([userId])
+}
+
+enum DealStage {
+  lead
+  qualification
+  proposal
+  negotiation
+  closed_won
+  closed_lost
+}
+
+enum IntegrationStatus {
+  connected
+  disconnected
+}
+
+enum LeadStatus {
+  new
+  contacted
+  qualified
+  converted
+  lost
+}
+
+enum MessageSender {
+  client
+  me
+}
+
+enum Plan {
+  Free
+  Pro
+  Business
+}
+
+enum TaskPriority {
+  low
+  medium
+  high
+  urgent
+}
+
+enum TaskStatus {
+  todo
+  in_progress
+  done
+  cancelled
+}
+
+model Wallet {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  balance   Decimal  @default(0) @db.Decimal(10, 2)
+  currency  String   @default("₸")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([userId])
+  @@index([userId])
+  @@map("wallets")
+}
+
+model SupportTicket {
+  id        Int                @id @default(autoincrement())
+  userId    Int
+  subject   String
+  message   String
+  status    SupportTicketStatus @default(open)
+  priority  SupportTicketPriority @default(medium)
+  response  String?
+  createdAt DateTime           @default(now())
+  updatedAt DateTime           @updatedAt
+
+  @@index([userId])
+  @@map("support_tickets")
+}
+
+enum SupportTicketStatus {
+  open
+  in_progress
+  resolved
+  closed
+}
+
+enum SupportTicketPriority {
+  low
+  medium
+  high
+  urgent
+}

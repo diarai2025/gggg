@@ -1,4 +1,4 @@
-import { ArrowLeft, Instagram, Send, MessageCircle, Check, ExternalLink } from 'lucide-react';
+import { ArrowLeft, MessageCircle, Send, Users, Check, ExternalLink, Instagram } from 'lucide-react';
 import { Screen } from '../App';
 import { useState } from 'react';
 
@@ -8,7 +8,7 @@ interface IntegrationsProps {
 }
 
 export function Integrations({ onNavigate, showToast }: IntegrationsProps) {
-  const [connectedIntegrations, setConnectedIntegrations] = useState<string[]>(['Instagram']);
+  const [connectedIntegrations, setConnectedIntegrations] = useState<string[]>(['WhatsApp Business']);
 
   const handleConnect = (name: string) => {
     if (connectedIntegrations.includes(name)) {
@@ -22,25 +22,28 @@ export function Integrations({ onNavigate, showToast }: IntegrationsProps) {
 
   const integrations = [
     {
-      name: 'Instagram',
-      description: 'Публикация постов и управление комментариями',
-      icon: <Instagram className="w-8 h-8" />,
-      gradient: 'from-purple-500 via-pink-500 to-orange-500',
-      features: ['Автопостинг', 'Ответы на комментарии', 'Статистика'],
+      name: 'WhatsApp Business',
+      description: 'Связь с клиентами через WhatsApp',
+      icon: <MessageCircle className="w-8 h-8" />,
+      gradient: 'from-green-400 to-green-600',
+      features: ['Общение с клиентами', 'Получение сообщений', 'Отправка ответов'],
+      connectedClients: 12,
     },
     {
       name: 'Telegram Bot',
-      description: 'Автоматизация общения с клиентами',
+      description: 'Общение с клиентами через Telegram',
       icon: <Send className="w-8 h-8" />,
       gradient: 'from-blue-400 to-blue-600',
-      features: ['AI Ответы', 'Сбор лидов', 'Уведомления'],
+      features: ['Чат с клиентами', 'AI-ответы', 'Уведомления'],
+      connectedClients: 8,
     },
     {
-      name: 'WhatsApp Business',
-      description: 'Бизнес-коммуникация с клиентами',
-      icon: <MessageCircle className="w-8 h-8" />,
-      gradient: 'from-green-400 to-green-600',
-      features: ['Массовые рассылки', 'Чат-бот', 'Каталог товаров'],
+      name: 'Instagram Direct',
+      description: 'Сообщения от клиентов в Instagram',
+      icon: <Instagram className="w-8 h-8" />,
+      gradient: 'from-purple-500 via-pink-500 to-orange-500',
+      features: ['Direct сообщения', 'Ответы клиентам', 'История переписки'],
+      connectedClients: 5,
     },
   ];
 
@@ -57,15 +60,24 @@ export function Integrations({ onNavigate, showToast }: IntegrationsProps) {
               <ArrowLeft className="w-5 h-5" />
             </button>
             <h1 className="text-white">Интеграции</h1>
+            <div className="flex items-center gap-4 ml-auto">
+              <button
+                onClick={() => onNavigate('support')}
+                className="px-4 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-white flex items-center gap-2 transition-colors"
+              >
+                <MessageCircle className="w-4 h-4" />
+                <span>Техподдержка</span>
+              </button>
+            </div>
           </div>
         </div>
       </header>
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="mb-8">
-          <h2 className="text-white mb-2">Подключите сервисы</h2>
+          <h2 className="text-white mb-2">Каналы связи с клиентами</h2>
           <p className="text-gray-400">
-            Интегрируйте DIAR с вашими любимыми платформами для автоматизации маркетинга
+            Подключите каналы коммуникации для общения с вашими клиентами из CRM
           </p>
         </div>
 
@@ -92,12 +104,22 @@ export function Integrations({ onNavigate, showToast }: IntegrationsProps) {
               <h3 className="text-white mb-2">{integration.name}</h3>
               <p className="text-gray-400 mb-4">{integration.description}</p>
 
+              {/* Connected Clients Count */}
+              {connectedIntegrations.includes(integration.name) && (
+                <div className="mb-4 flex items-center gap-2 text-sm">
+                  <Users className="w-4 h-4 text-green-400" />
+                  <span className="text-gray-400">
+                    Подключено клиентов: <span className="text-white font-semibold">{integration.connectedClients}</span>
+                  </span>
+                </div>
+              )}
+
               {/* Features */}
               <div className="space-y-2 mb-6">
                 {integration.features.map((feature, featureIndex) => (
                   <div key={featureIndex} className="flex items-center gap-2 text-gray-400">
                     <div className="w-1.5 h-1.5 rounded-full bg-yellow-500"></div>
-                    <span>{feature}</span>
+                    <span className="text-sm">{feature}</span>
                   </div>
                 ))}
               </div>
@@ -130,40 +152,51 @@ export function Integrations({ onNavigate, showToast }: IntegrationsProps) {
 
         {/* Info Section */}
         <div className="mt-12 bg-gradient-to-r from-blue-500/10 to-purple-500/10 border border-blue-500/30 rounded-2xl p-6">
-          <h3 className="text-white mb-3">💡 Совет по интеграциям</h3>
+          <h3 className="text-white mb-3">💡 Как это работает</h3>
           <p className="text-gray-300 mb-4">
-            Подключите Instagram для автоматической публикации постов и Telegram Bot для сбора лидов. 
-            Это увеличит вашу эффективность на 40%.
+            Подключите каналы связи, чтобы общаться с клиентами прямо из CRM. Все сообщения от клиентов 
+            будут автоматически привязаны к их профилям в системе.
           </p>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="bg-slate-800/50 rounded-xl p-4">
-              <p className="text-gray-400 mb-1">Сэкономьте</p>
-              <p className="text-white">До 10 часов в неделю</p>
+              <div className="flex items-center gap-2 mb-2">
+                <MessageCircle className="w-5 h-5 text-blue-400" />
+                <p className="text-white font-semibold">Единый чат</p>
+              </div>
+              <p className="text-gray-400 text-sm">Все сообщения от клиентов в одном месте</p>
             </div>
             <div className="bg-slate-800/50 rounded-xl p-4">
-              <p className="text-gray-400 mb-1">Увеличьте</p>
-              <p className="text-white">Лиды на 50%</p>
+              <div className="flex items-center gap-2 mb-2">
+                <Users className="w-5 h-5 text-green-400" />
+                <p className="text-white font-semibold">Связь с CRM</p>
+              </div>
+              <p className="text-gray-400 text-sm">Автоматическая привязка к профилям клиентов</p>
             </div>
             <div className="bg-slate-800/50 rounded-xl p-4">
-              <p className="text-gray-400 mb-1">Автоматизируйте</p>
-              <p className="text-white">80% рутинных задач</p>
+              <div className="flex items-center gap-2 mb-2">
+                <Send className="w-5 h-5 text-yellow-400" />
+                <p className="text-white font-semibold">Быстрые ответы</p>
+              </div>
+              <p className="text-gray-400 text-sm">Отвечайте клиентам прямо из системы</p>
             </div>
           </div>
         </div>
 
-        {/* Coming Soon */}
-        <div className="mt-8">
-          <h3 className="text-white mb-4">Скоро появятся</h3>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            {['Facebook', 'TikTok', 'LinkedIn', 'Twitter'].map((platform, index) => (
-              <div
-                key={index}
-                className="bg-slate-800/30 border border-slate-700 rounded-xl p-4 text-center opacity-60"
-              >
-                <p className="text-gray-400">{platform}</p>
-                <p className="text-gray-500 mt-1">Скоро</p>
-              </div>
-            ))}
+        {/* Link to CRM */}
+        <div className="mt-8 bg-slate-800/30 border border-slate-700 rounded-2xl p-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <h3 className="text-white mb-2">Управление клиентами</h3>
+              <p className="text-gray-400 text-sm">
+                Перейдите в CRM, чтобы просмотреть всех клиентов и начать общение
+              </p>
+            </div>
+            <button
+              onClick={() => onNavigate('crm')}
+              className="px-6 py-3 bg-gradient-to-r from-yellow-400 to-amber-500 text-black rounded-xl hover:shadow-lg hover:shadow-yellow-500/50 transition-all font-semibold"
+            >
+              Открыть CRM
+            </button>
           </div>
         </div>
       </main>

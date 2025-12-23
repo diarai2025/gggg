@@ -1,13 +1,75 @@
-import { ArrowLeft, Check, Sparkles, Zap, Crown } from 'lucide-react';
+import { useState } from 'react';
+import { ArrowLeft, Check, Sparkles, Zap, Crown, MessageCircle } from 'lucide-react';
 import { Screen } from '../App';
+import { useAuth } from '../contexts/AuthContext';
+import { userAPI } from '../lib/api';
 
 interface SubscriptionProps {
   user: { name: string; plan: 'Free' | 'Pro' | 'Business' } | null;
   onNavigate: (screen: Screen) => void;
   showToast: (message: string, type?: 'success' | 'error' | 'info') => void;
+  onPlanUpdate?: (plan: 'Free' | 'Pro' | 'Business') => void;
 }
 
-export function Subscription({ user, onNavigate, showToast }: SubscriptionProps) {
+export function Subscription({ user, onNavigate, showToast, onPlanUpdate }: SubscriptionProps) {
+  const { user: supabaseUser } = useAuth();
+  const [loading, setLoading] = useState<string | null>(null);
+
+  const handlePlanSelect = async (planName: string) => {
+    // Преобразуем название плана в формат enum
+    const planMap: Record<string, 'Free' | 'Pro' | 'Business'> = {
+      'FREE': 'Free',
+      'PRO': 'Pro',
+      'BUSINESS': 'Business',
+    };
+
+    const plan = planMap[planName];
+    if (!plan) {
+      showToast('Неверный план подписки', 'error');
+      return;
+    }
+
+    // Если это текущий план, ничего не делаем
+    if (user?.plan === plan) {
+      return;
+    }
+
+    setLoading(planName);
+
+    try {
+      const userEmail = supabaseUser?.email;
+      const userId = supabaseUser?.id;
+
+      if (!userEmail || !userId) {
+        showToast('Ошибка: пользователь не авторизован', 'error');
+        setLoading(null);
+        return;
+      }
+
+      // Обновляем план в БД
+      const updatedProfile = await userAPI.updatePlan(plan, userId, userEmail);
+
+      // Обновляем локальное состояние через callback
+      if (onPlanUpdate) {
+        onPlanUpdate(updatedProfile.plan);
+      }
+
+      showToast(
+        plan === 'Free'
+          ? `План успешно изменен на ${planName}`
+          : `План ${planName} выбран. Перенаправляем на оплату...`,
+        'success'
+      );
+    } catch (error: any) {
+      console.error('Ошибка при обновлении плана:', error);
+      showToast(
+        error.message || 'Ошибка при обновлении плана подписки',
+        'error'
+      );
+    } finally {
+      setLoading(null);
+    }
+  };
   const plans = [
     {
       name: 'FREE',
@@ -17,7 +79,6 @@ export function Subscription({ user, onNavigate, showToast }: SubscriptionProps)
       gradient: 'from-gray-600 to-gray-800',
       features: [
         { text: 'До 10 клиентов в CRM', included: true },
-        { text: '5 AI генераций контента', included: true },
         { text: 'Базовая аналитика', included: true },
         { text: '1 интеграция', included: true },
         { text: 'Email поддержка', included: true },
@@ -36,7 +97,6 @@ export function Subscription({ user, onNavigate, showToast }: SubscriptionProps)
       popular: true,
       features: [
         { text: 'До 100 клиентов в CRM', included: true },
-        { text: '100 AI генераций контента', included: true },
         { text: 'Расширенная аналитика', included: true },
         { text: '5 интеграций', included: true },
         { text: 'AI оптимизация рекламы', included: true },
@@ -54,7 +114,6 @@ export function Subscription({ user, onNavigate, showToast }: SubscriptionProps)
       gradient: 'from-yellow-400 to-amber-600',
       features: [
         { text: 'Неограниченное количество клиентов', included: true },
-        { text: 'Неограниченные AI генерации', included: true },
         { text: 'Полная аналитика + BI', included: true },
         { text: 'Все интеграции', included: true },
         { text: 'AI оптимизация рекламы', included: true },
@@ -79,6 +138,15 @@ export function Subscription({ user, onNavigate, showToast }: SubscriptionProps)
               <ArrowLeft className="w-5 h-5" />
             </button>
             <h1 className="text-white">Подписка</h1>
+            <div className="flex items-center gap-4 ml-auto">
+              <button
+                onClick={() => onNavigate('support')}
+                className="px-4 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-white flex items-center gap-2 transition-colors"
+              >
+                <MessageCircle className="w-4 h-4" />
+                <span>Техподдержка</span>
+              </button>
+            </div>
           </div>
         </div>
       </header>
@@ -157,7 +225,7 @@ export function Subscription({ user, onNavigate, showToast }: SubscriptionProps)
                 ))}
               </ul>
 
-              {/* CTA Button */}
+              {/* Кнопка призыва к действию */}
               {plan.current ? (
                 <button
                   disabled
@@ -167,14 +235,21 @@ export function Subscription({ user, onNavigate, showToast }: SubscriptionProps)
                 </button>
               ) : (
                 <button
-                  onClick={() => showToast(`Вы выбрали план ${plan.name}. Перенаправляем на оплату...`, 'success')}
+                  onClick={() => handlePlanSelect(plan.name)}
+                  disabled={loading === plan.name}
                   className={`w-full py-4 rounded-xl transition-all ${
-                    plan.popular
+                    loading === plan.name
+                      ? 'opacity-50 cursor-not-allowed'
+                      : plan.popular
                       ? 'bg-gradient-to-r from-yellow-400 to-amber-500 text-black hover:shadow-lg hover:shadow-yellow-500/50'
                       : 'bg-slate-700 hover:bg-slate-600 text-white'
                   }`}
                 >
-                  {plan.name === 'FREE' ? 'Начать бесплатно' : 'Оформить подписку'}
+                  {loading === plan.name
+                    ? 'Обновление...'
+                    : plan.name === 'FREE'
+                    ? 'Начать бесплатно'
+                    : 'Оформить подписку'}
                 </button>
               )}
             </div>
@@ -200,12 +275,6 @@ export function Subscription({ user, onNavigate, showToast }: SubscriptionProps)
                 <tr className="border-b border-slate-700">
                   <td className="p-4 text-gray-300">Клиенты в CRM</td>
                   <td className="p-4 text-center text-gray-400">10</td>
-                  <td className="p-4 text-center text-gray-400">100</td>
-                  <td className="p-4 text-center text-green-400">Неограниченно</td>
-                </tr>
-                <tr className="border-b border-slate-700">
-                  <td className="p-4 text-gray-300">AI генерации/месяц</td>
-                  <td className="p-4 text-center text-gray-400">5</td>
                   <td className="p-4 text-center text-gray-400">100</td>
                   <td className="p-4 text-center text-green-400">Неограниченно</td>
                 </tr>

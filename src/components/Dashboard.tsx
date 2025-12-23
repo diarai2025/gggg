@@ -1,6 +1,9 @@
-import { Brain, Feather, Rocket, Users, TrendingUp, DollarSign, Target, Sparkles, Menu, Settings, LogOut, Plus, FileText, Image as ImageIcon } from 'lucide-react';
+import { Brain, Feather, Rocket, Users, TrendingUp, DollarSign, Target, Sparkles, Menu, Settings, LogOut, Plus, FileText, Image as ImageIcon, Loader2, MessageSquare } from 'lucide-react';
 import { Screen } from '../App';
-import { useState } from 'react';
+import { useState, memo, useMemo, useCallback } from 'react';
+import { useAuth } from '../contexts/AuthContext';
+import { ConfirmDialog } from './ConfirmDialog';
+import { Wallet } from './Wallet';
 
 interface DashboardProps {
   user: { name: string; plan: 'Free' | 'Pro' | 'Business' } | null;
@@ -8,31 +11,72 @@ interface DashboardProps {
   showToast: (message: string, type?: 'success' | 'error' | 'info') => void;
 }
 
-export function Dashboard({ user, onNavigate, showToast }: DashboardProps) {
+export const Dashboard = memo(function Dashboard({ user, onNavigate, showToast }: DashboardProps) {
   const [menuOpen, setMenuOpen] = useState(false);
+  const [isSigningOut, setIsSigningOut] = useState(false);
+  const [signOutConfirmOpen, setSignOutConfirmOpen] = useState(false);
+  const { signOut } = useAuth();
 
-  const mainBlocks = [
+  const handleSignOutClick = useCallback(() => {
+    setMenuOpen(false);
+    setSignOutConfirmOpen(true);
+  }, []);
+
+  const handleSignOut = useCallback(async () => {
+    setIsSigningOut(true);
+    try {
+      await signOut();
+      setSignOutConfirmOpen(false);
+      // Небольшая задержка перед навигацией, чтобы диалог успел закрыться
+      setTimeout(() => {
+        onNavigate('login');
+        showToast('Вы успешно вышли из системы', 'success');
+      }, 100);
+    } catch (error) {
+      console.error('Ошибка при выходе:', error);
+      showToast('Ошибка при выходе из системы', 'error');
+      setIsSigningOut(false);
+    }
+  }, [signOut, onNavigate, showToast]);
+
+  const handleNavigateToSubscription = useCallback(() => {
+    onNavigate('subscription');
+  }, [onNavigate]);
+
+  const handleNavigateToIntegrations = useCallback(() => {
+    onNavigate('integrations');
+  }, [onNavigate]);
+
+  const handleNavigateToAIAdvertising = useCallback(() => {
+    onNavigate('ai-advertising');
+  }, [onNavigate]);
+
+  const handleNavigateToCRM = useCallback(() => {
+    onNavigate('crm');
+  }, [onNavigate]);
+
+  const mainBlocks = useMemo(() => [
     {
       title: 'AI Реклама',
       icon: <Rocket className="w-8 h-8" />,
       gradient: 'from-pink-500 to-purple-500',
       description: 'Запуск кампаний',
-      onClick: () => onNavigate('ai-advertising'),
+      onClick: handleNavigateToAIAdvertising,
     },
     {
       title: 'CRM',
       icon: <Users className="w-8 h-8" />,
       gradient: 'from-yellow-400 to-amber-500',
       description: 'Управление клиентами',
-      onClick: () => onNavigate('crm'),
+      onClick: handleNavigateToCRM,
     },
-  ];
+  ], [handleNavigateToAIAdvertising, handleNavigateToCRM]);
 
-  const kpis = [
+  const kpis = useMemo(() => [
     { label: 'Лиды', value: '127', change: '+12%', icon: <Target className="w-5 h-5" /> },
     { label: 'Продажи', value: '₸1.2M', change: '+23%', icon: <DollarSign className="w-5 h-5" /> },
     { label: 'Конверсия', value: '34.5%', change: '+5%', icon: <TrendingUp className="w-5 h-5" /> },
-  ];
+  ], []);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-black via-slate-900 to-black">
@@ -50,7 +94,15 @@ export function Dashboard({ user, onNavigate, showToast }: DashboardProps) {
 
             <div className="flex items-center gap-4">
               <button
-                onClick={() => onNavigate('subscription')}
+                onClick={() => onNavigate('support')}
+                className="px-4 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-white flex items-center gap-2 transition-colors"
+              >
+                <MessageSquare className="w-4 h-4" />
+                <span>Техподдержка</span>
+              </button>
+
+              <button
+                onClick={handleNavigateToSubscription}
                 className={`px-4 py-2 rounded-lg ${
                   user?.plan === 'Free'
                     ? 'bg-gradient-to-r from-yellow-400 to-amber-500 text-black'
@@ -71,13 +123,26 @@ export function Dashboard({ user, onNavigate, showToast }: DashboardProps) {
                 {menuOpen && (
                   <div className="absolute right-0 mt-2 w-48 bg-slate-800 border border-slate-700 rounded-xl shadow-lg overflow-hidden">
                     <button
-                      onClick={() => onNavigate('integrations')}
+                      onClick={handleNavigateToIntegrations}
                       className="w-full px-4 py-3 text-left hover:bg-slate-700 flex items-center gap-3"
                     >
                       <Settings className="w-4 h-4" />
                       Интеграции
                     </button>
-                    <button className="w-full px-4 py-3 text-left hover:bg-slate-700 flex items-center gap-3 text-red-400">
+                    <button
+                      onClick={() => {
+                        setMenuOpen(false);
+                        onNavigate('support');
+                      }}
+                      className="w-full px-4 py-3 text-left hover:bg-slate-700 flex items-center gap-3"
+                    >
+                      <MessageSquare className="w-4 h-4" />
+                      Техподдержка
+                    </button>
+                    <button 
+                      onClick={handleSignOutClick}
+                      className="w-full px-4 py-3 text-left hover:bg-slate-700 flex items-center gap-3 text-red-400"
+                    >
                       <LogOut className="w-4 h-4" />
                       Выйти
                     </button>
@@ -93,16 +158,41 @@ export function Dashboard({ user, onNavigate, showToast }: DashboardProps) {
         {/* Welcome section */}
         <div className="mb-8">
           <h1 className="text-white mb-2">
-            Добро пожаловать, {user?.name}!
+            {user?.name ? `Добро пожаловать, ${user.name}!` : 'Добро пожаловать!'}
           </h1>
           <p className="text-gray-400">Управляйте вашим бизнесом с помощью AI</p>
         </div>
 
+        {/* Main Blocks */}
+        <div className="mb-8">
+          <h2 className="text-white mb-6">Основные инструменты</h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {mainBlocks.map((block) => (
+              <button
+                key={block.title}
+                onClick={block.onClick}
+                className="bg-slate-800/50 border border-slate-700 rounded-2xl p-6 hover:border-slate-600 transition-all duration-300 hover:scale-105 text-left group"
+              >
+                <div className={`w-16 h-16 rounded-2xl bg-gradient-to-r ${block.gradient} flex items-center justify-center mb-4 group-hover:shadow-lg transition-shadow`}>
+                  {block.icon}
+                </div>
+                <h3 className="text-white mb-2">{block.title}</h3>
+                <p className="text-gray-400">{block.description}</p>
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Wallet */}
+        <div className="mb-8">
+          <Wallet showToast={showToast} />
+        </div>
+
         {/* KPI Cards */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
-          {kpis.map((kpi, index) => (
+          {kpis.map((kpi) => (
             <div
-              key={index}
+              key={kpi.label}
               className="bg-slate-800/50 border border-slate-700 rounded-2xl p-6 hover:border-yellow-500/30 transition-colors"
             >
               <div className="flex items-center justify-between mb-4">
@@ -133,33 +223,13 @@ export function Dashboard({ user, onNavigate, showToast }: DashboardProps) {
           </div>
         </div>
 
-        {/* Main Blocks */}
-        <div className="mb-8">
-          <h2 className="text-white mb-6">Основные инструменты</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {mainBlocks.map((block, index) => (
-              <button
-                key={index}
-                onClick={block.onClick}
-                className="bg-slate-800/50 border border-slate-700 rounded-2xl p-6 hover:border-slate-600 transition-all duration-300 hover:scale-105 text-left group"
-              >
-                <div className={`w-16 h-16 rounded-2xl bg-gradient-to-r ${block.gradient} flex items-center justify-center mb-4 group-hover:shadow-lg transition-shadow`}>
-                  {block.icon}
-                </div>
-                <h3 className="text-white mb-2">{block.title}</h3>
-                <p className="text-gray-400">{block.description}</p>
-              </button>
-            ))}
-          </div>
-        </div>
-
         {/* Quick Stats */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div className="bg-slate-800/50 border border-slate-700 rounded-2xl p-6">
             <h3 className="text-white mb-4">Активность за 7 дней</h3>
             <div className="space-y-3">
               <div className="flex justify-between items-center">
-                <span className="text-gray-400">Создано постов</span>
+                <span className="text-gray-400">Создано компаний</span>
                 <span className="text-white">24</span>
               </div>
               <div className="flex justify-between items-center">
@@ -192,6 +262,19 @@ export function Dashboard({ user, onNavigate, showToast }: DashboardProps) {
           </div>
         </div>
       </main>
+
+      {/* Sign Out Confirmation Dialog */}
+      <ConfirmDialog
+        open={signOutConfirmOpen}
+        onOpenChange={setSignOutConfirmOpen}
+        onConfirm={handleSignOut}
+        title="Выйти из системы?"
+        description="Вы уверены, что хотите выйти? Вам потребуется войти снова для доступа к системе."
+        confirmText="Выйти"
+        cancelText="Отмена"
+        variant="default"
+        isLoading={isSigningOut}
+      />
     </div>
   );
-}
+});

@@ -747,6 +747,10 @@
     max-width: var(--container-7xl);
   }
 
+  .min-w-0 {
+    min-width: 0;
+  }
+
   .max-w-lg {
     max-width: var(--container-lg);
   }
@@ -2002,6 +2006,29 @@
     .lg\:px-8 {
       padding-inline: calc(var(--spacing) * 8);
     }
+  }
+
+  .break-words {
+    overflow-wrap: break-word;
+    word-break: break-word;
+  }
+
+  .whitespace-pre-wrap {
+    white-space: pre-wrap;
+  }
+
+  .line-clamp-2 {
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    overflow: hidden;
+  }
+
+  .line-clamp-3 {
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 3;
+    overflow: hidden;
   }
 }
 

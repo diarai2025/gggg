@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, memo, useMemo } from 'react';
 import { CheckCircle, XCircle, Info, X } from 'lucide-react';
 
 interface ToastProps {
@@ -7,7 +7,7 @@ interface ToastProps {
   onClose: () => void;
 }
 
-export function Toast({ message, type, onClose }: ToastProps) {
+export const Toast = memo(function Toast({ message, type, onClose }: ToastProps) {
   useEffect(() => {
     const timer = setTimeout(() => {
       onClose();
@@ -16,17 +16,17 @@ export function Toast({ message, type, onClose }: ToastProps) {
     return () => clearTimeout(timer);
   }, [onClose]);
 
-  const icons = {
+  const icons = useMemo(() => ({
     success: <CheckCircle className="w-5 h-5 text-green-400" />,
     error: <XCircle className="w-5 h-5 text-red-400" />,
     info: <Info className="w-5 h-5 text-blue-400" />,
-  };
+  }), []);
 
-  const backgrounds = {
+  const backgrounds = useMemo(() => ({
     success: 'from-green-500/20 to-green-600/20 border-green-500/50',
     error: 'from-red-500/20 to-red-600/20 border-red-500/50',
     info: 'from-blue-500/20 to-blue-600/20 border-blue-500/50',
-  };
+  }), []);
 
   return (
     <div className={`fixed top-4 right-4 z-[100] bg-gradient-to-r ${backgrounds[type]} border backdrop-blur-sm rounded-xl p-4 shadow-lg animate-in slide-in-from-top-5 min-w-[300px]`}>
@@ -39,4 +39,4 @@ export function Toast({ message, type, onClose }: ToastProps) {
       </div>
     </div>
   );
-}
+});

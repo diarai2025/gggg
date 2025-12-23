@@ -1,14 +1,14 @@
-import { useState } from 'react';
+import { useState, memo, useMemo, useCallback } from 'react';
 import { Sparkles, Target, TrendingUp, Zap } from 'lucide-react';
 
 interface OnboardingProps {
   onComplete: () => void;
 }
 
-export function Onboarding({ onComplete }: OnboardingProps) {
+export const Onboarding = memo(function Onboarding({ onComplete }: OnboardingProps) {
   const [step, setStep] = useState(0);
 
-  const screens = [
+  const screens = useMemo(() => [
     {
       icon: <div className="text-8xl mb-8 bg-gradient-to-r from-yellow-400 via-amber-500 to-yellow-600 bg-clip-text text-transparent">DIAR</div>,
       title: '',
@@ -29,15 +29,15 @@ export function Onboarding({ onComplete }: OnboardingProps) {
       title: 'Готовы начать?',
       description: 'Автоматизируйте маркетинг с помощью искусственного интеллекта',
     },
-  ];
+  ], []);
 
-  const handleNext = () => {
+  const handleNext = useCallback(() => {
     if (step < screens.length - 1) {
       setStep(step + 1);
     } else {
       onComplete();
     }
-  };
+  }, [step, screens.length, onComplete]);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-black via-slate-900 to-black flex flex-col items-center justify-center p-6 relative overflow-hidden">
@@ -86,4 +86,4 @@ export function Onboarding({ onComplete }: OnboardingProps) {
       </div>
     </div>
   );
-}
+});
