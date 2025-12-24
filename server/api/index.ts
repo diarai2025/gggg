@@ -1,21 +1,21 @@
 import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
-import { errorHandler } from './middleware/errorHandler';
-import { authMiddleware } from './middleware/auth.middleware';
+import { errorHandler } from '../src/middleware/errorHandler';
+import { authMiddleware } from '../src/middleware/auth.middleware';
 
 // Роуты
-import leadsRoutes from './routes/leads.routes';
-import dealsRoutes from './routes/deals.routes';
-import tasksRoutes from './routes/tasks.routes';
-import crmRoutes from './routes/crm.routes';
-import dashboardRoutes from './routes/dashboard.routes';
-import campaignsRoutes from './routes/campaigns.routes';
-import userRoutes from './routes/user.routes';
-import aiRoutes from './routes/ai.routes';
-import walletRoutes from './routes/wallet.routes';
-import supportRoutes from './routes/support.routes';
-import adminRoutes from './routes/admin.routes';
+import leadsRoutes from '../src/routes/leads.routes';
+import dealsRoutes from '../src/routes/deals.routes';
+import tasksRoutes from '../src/routes/tasks.routes';
+import crmRoutes from '../src/routes/crm.routes';
+import dashboardRoutes from '../src/routes/dashboard.routes';
+import campaignsRoutes from '../src/routes/campaigns.routes';
+import userRoutes from '../src/routes/user.routes';
+import aiRoutes from '../src/routes/ai.routes';
+import walletRoutes from '../src/routes/wallet.routes';
+import supportRoutes from '../src/routes/support.routes';
+import adminRoutes from '../src/routes/admin.routes';
 
 dotenv.config();
 
