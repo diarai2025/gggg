@@ -21,14 +21,47 @@ dotenv.config();
 
 const app = express();
 
-// Middleware
-app.use(cors());
+// CORS настройки - явно разрешаем фронтенд домен
+const corsOptions = {
+  origin: [
+    'https://diarai.vercel.app',
+    'https://diarai2025.vercel.app',
+    'http://localhost:3000',
+    'http://localhost:5173',
+    /\.vercel\.app$/
+  ],
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'x-user-id', 'x-user-email'],
+  exposedHeaders: ['Content-Type'],
+  maxAge: 86400 // 24 часа
+};
+
+// CORS middleware - должен быть ПЕРЕД всеми маршрутами
+app.use(cors(corsOptions));
+
+// Обработка preflight запросов
+app.options('*', cors(corsOptions));
+
 app.use(express.json());
 
 // Логирование запросов
 app.use((req, res, next) => {
   console.log(`${new Date().toISOString()} - ${req.method} ${req.path}`);
   next();
+});
+
+// Корневой маршрут для проверки работоспособности
+app.get('/', (req, res) => {
+  res.json({ 
+    status: 'ok', 
+    message: 'DIAR AI Server API',
+    timestamp: new Date().toISOString(),
+    endpoints: {
+      health: '/health',
+      api: '/api/*'
+    }
+  });
 });
 
 // Health check

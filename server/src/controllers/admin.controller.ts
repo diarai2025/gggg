@@ -308,9 +308,6 @@ export async function exportCampaignsStats(req: Request, res: Response) {
 
     const campaigns = await prisma.campaign.findMany({
       orderBy: { createdAt: 'desc' },
-      include: {
-        // Получаем информацию о пользователе через userId
-      },
     });
 
     // Получаем информацию о пользователях
@@ -683,6 +680,7 @@ export async function importClients(req: Request, res: Response) {
             email: client.Email.trim(),
             stage: client.Этап?.trim() || 'Первый контакт',
             status: client.Статус?.trim() || 'Новый',
+            updatedAt: new Date(),
           },
         });
         createdClients.push(newClient);

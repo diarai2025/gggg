@@ -139,8 +139,6 @@ export class LeadsController {
           email,
           status: status || 'new',
           source: source || 'Другое',
-          stage: stage || 'Первый контакт',
-          lastAction: lastAction ? new Date(lastAction) : new Date(),
           notes: notes || null,
           userId,
         },

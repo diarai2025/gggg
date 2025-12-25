@@ -590,7 +590,7 @@ The image should be suitable for digital advertising and grab attention while ma
       quality: 'standard',
     });
 
-    const imageUrl = response.data[0]?.url || null;
+    const imageUrl = response.data && response.data[0]?.url ? response.data[0].url : null;
     
     if (imageUrl) {
       console.log(`Изображение успешно сгенерировано через DALL-E для кампании "${campaignName}"`);

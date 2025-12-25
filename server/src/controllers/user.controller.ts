@@ -1,6 +1,6 @@
 import { Request, Response } from 'express';
 import { prisma } from '../db/prisma';
-import { Plan } from '@prisma/client';
+import { Plan, Role } from '@prisma/client';
 
 // Получить профиль пользователя (включая план)
 export async function getUserProfile(req: Request, res: Response) {
@@ -33,16 +33,22 @@ export async function getUserProfile(req: Request, res: Response) {
           name: userEmail.split('@')[0] || 'Пользователь',
           password: '', // В реальном приложении пароль хранится в Supabase
           plan: Plan.Free,
+          role: Role.user,
         },
         select: {
           id: true,
           email: true,
           name: true,
           plan: true,
+          role: true,
           createdAt: true,
           updatedAt: true,
         },
       });
+    }
+
+    if (!user) {
+      return res.status(500).json({ error: 'Не удалось создать или получить пользователя' });
     }
 
     res.json({
@@ -54,9 +60,48 @@ export async function getUserProfile(req: Request, res: Response) {
       createdAt: user.createdAt,
       updatedAt: user.updatedAt,
     });
-  } catch (error) {
+  } catch (error: any) {
     console.error('Ошибка при получении профиля пользователя:', error);
-    res.status(500).json({ error: 'Ошибка при получении профиля пользователя' });
+    console.error('Детали ошибки:', {
+      message: error.message,
+      code: error.code,
+      name: error.name,
+      meta: error.meta,
+    });
+    
+    // Проверяем, связана ли ошибка с подключением к БД
+    if (error.code === 'P1001' || error.message?.includes('Can\'t reach database server')) {
+      return res.status(500).json({ 
+        error: 'Ошибка подключения к базе данных',
+        message: 'Не удалось подключиться к базе данных. Проверьте DATABASE_URL в переменных окружения.',
+        details: {
+          code: error.code,
+          message: error.message,
+        }
+      });
+    }
+    
+    // Проверяем, связана ли ошибка с отсутствием таблицы
+    if (error.code === 'P2025' || error.message?.includes('does not exist')) {
+      return res.status(500).json({ 
+        error: 'Таблица не найдена',
+        message: 'Таблица users не существует. Выполните миграции: npm run prisma:migrate',
+        details: {
+          code: error.code,
+          message: error.message,
+        }
+      });
+    }
+    
+    res.status(500).json({ 
+      error: 'Ошибка при получении профиля пользователя',
+      message: error.message || 'Неизвестная ошибка',
+      details: process.env.NODE_ENV === 'development' ? {
+        code: error.code,
+        name: error.name,
+        stack: error.stack,
+      } : undefined
+    });
   }
 }
 
@@ -87,6 +132,7 @@ export async function updateUserPlan(req: Request, res: Response) {
           name: userEmail.split('@')[0] || 'Пользователь',
           password: '', // В реальном приложении пароль хранится в Supabase
           plan: plan as Plan,
+          role: Role.user,
         },
       });
     } else {

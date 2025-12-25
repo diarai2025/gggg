@@ -1,6 +1,7 @@
 import { supabase } from './supabase';
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+// Убираем завершающий слэш из URL, если он есть
+const API_BASE_URL = (import.meta.env.VITE_API_URL || 'http://localhost:3001').replace(/\/+$/, '');
 
 // Типы ошибок API
 export class APIError extends Error {
@@ -61,26 +62,62 @@ export async function getHeaders(): Promise<HeadersInit> {
 
   try {
     // Получаем access_token из Supabase сессии
-    const { data: { session }, error } = await supabase.auth.getSession();
+    // Пробуем несколько раз, так как сессия может еще загружаться
+    let session = null;
+    let attempts = 0;
+    const maxAttempts = 5;
     
-    if (error) {
-      console.error('[getHeaders] Ошибка получения сессии Supabase:', error);
-      throw new Error('Не удалось получить сессию Supabase');
+    while (attempts < maxAttempts && !session) {
+      const { data, error } = await supabase.auth.getSession();
+      
+      if (error) {
+        console.error('[getHeaders] Ошибка получения сессии Supabase (попытка ' + (attempts + 1) + '):', error);
+        if (attempts === maxAttempts - 1) {
+          throw new Error('Не удалось получить сессию Supabase: ' + error.message);
+        }
+        await new Promise(resolve => setTimeout(resolve, 100));
+        attempts++;
+        continue;
+      }
+      
+      if (data?.session?.access_token) {
+        session = data.session;
+        break;
+      }
+      
+      // Если сессия не найдена, ждем немного и пробуем снова
+      if (attempts < maxAttempts - 1) {
+        await new Promise(resolve => setTimeout(resolve, 100));
+      }
+      attempts++;
     }
     
     if (session?.access_token) {
       headers['Authorization'] = `Bearer ${session.access_token}`;
+      return headers;
     } else {
+      // Проверяем, может быть пользователь просто не авторизован
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        console.warn('[getHeaders] Пользователь не авторизован в Supabase');
+        throw new Error('Пользователь не авторизован. Пожалуйста, войдите в систему.');
+      }
+      
       console.warn('[getHeaders] Supabase сессия не найдена или токен отсутствует');
-      throw new Error('Токен доступа не найден в сессии Supabase');
+      console.warn('[getHeaders] Пользователь:', user?.email);
+      console.warn('[getHeaders] Попыток получения сессии:', attempts);
+      throw new Error('Токен доступа не найден в сессии Supabase. Пожалуйста, перезагрузите страницу или войдите заново.');
     }
-  } catch (error) {
+  } catch (error: any) {
     console.error('[getHeaders] Ошибка при получении заголовков аутентификации:', error);
+    console.error('[getHeaders] Детали ошибки:', {
+      message: error?.message,
+      name: error?.name,
+      stack: error?.stack,
+    });
     // Пробрасываем ошибку дальше, чтобы обработчик запроса мог её обработать
     throw error;
   }
-
-  return headers;
 }
 
 // Базовый метод для запросов с retry логикой
@@ -89,7 +126,9 @@ async function request<T>(
   options: RequestInit = {},
   retryConfig: RetryConfig = defaultRetryConfig
 ): Promise<T> {
-  const url = `${API_BASE_URL}${endpoint}`;
+  // Убираем начальный слэш из endpoint, если он есть, и добавляем один слэш
+  const cleanEndpoint = endpoint.startsWith('/') ? endpoint : `/${endpoint}`;
+  const url = `${API_BASE_URL}${cleanEndpoint}`;
   let lastError: APIError | null = null;
 
   for (let attempt = 0; attempt <= retryConfig.maxRetries; attempt++) {
@@ -506,21 +545,21 @@ export const adminAPI = {
       body: JSON.stringify({ status }),
     }),
   exportLeads: async () => {
-    const url = `${API_BASE_URL}/api/admin/export/leads`;
+    const url = `${API_BASE_URL}/api/admin/export/leads`.replace(/([^:]\/)\/+/g, '$1');
     const headers = await getHeaders();
     const response = await fetch(url, { method: 'GET', headers });
     if (!response.ok) throw new APIError('Ошибка экспорта лидов', response.status);
     return await response.blob();
   },
   exportClients: async () => {
-    const url = `${API_BASE_URL}/api/admin/export/clients`;
+    const url = `${API_BASE_URL}/api/admin/export/clients`.replace(/([^:]\/)\/+/g, '$1');
     const headers = await getHeaders();
     const response = await fetch(url, { method: 'GET', headers });
     if (!response.ok) throw new APIError('Ошибка экспорта клиентов', response.status);
     return await response.blob();
   },
   exportCampaignsStats: async () => {
-    const url = `${API_BASE_URL}/api/admin/export/campaigns`;
+    const url = `${API_BASE_URL}/api/admin/export/campaigns`.replace(/([^:]\/)\/+/g, '$1');
     const headers = await getHeaders();
     const response = await fetch(url, { method: 'GET', headers });
     if (!response.ok) throw new APIError('Ошибка экспорта статистики кампаний', response.status);
@@ -543,7 +582,7 @@ export const adminAPI = {
       body: JSON.stringify({ balance, note }),
     }),
   importLeads: async (userId: number, file: File) => {
-    const url = `${API_BASE_URL}/api/admin/import/leads/${userId}`;
+    const url = `${API_BASE_URL}/api/admin/import/leads/${userId}`.replace(/([^:]\/)\/+/g, '$1');
     const headers = await getHeaders();
     const formData = new FormData();
     formData.append('file', file);
@@ -565,7 +604,7 @@ export const adminAPI = {
     return await response.json();
   },
   importClients: async (userId: number, file: File) => {
-    const url = `${API_BASE_URL}/api/admin/import/clients/${userId}`;
+    const url = `${API_BASE_URL}/api/admin/import/clients/${userId}`.replace(/([^:]\/)\/+/g, '$1');
     const headers = await getHeaders();
     const formData = new FormData();
     formData.append('file', file);
@@ -586,7 +625,7 @@ export const adminAPI = {
     return await response.json();
   },
   importCampaignsStats: async (userId: number, file: File) => {
-    const url = `${API_BASE_URL}/api/admin/import/campaigns/${userId}`;
+    const url = `${API_BASE_URL}/api/admin/import/campaigns/${userId}`.replace(/([^:]\/)\/+/g, '$1');
     const headers = await getHeaders();
     const formData = new FormData();
     formData.append('file', file);
